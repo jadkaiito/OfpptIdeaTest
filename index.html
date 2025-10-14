@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,6 +32,29 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .schedule-table th, .schedule-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: center;
+        }
+        .schedule-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+        }
+        .schedule-table td {
+            background-color: white;
+        }
+        .schedule-table .time-header {
+            background-color: #6366f1;
+            color: white;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -49,23 +72,23 @@
             <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
                 <h2 class="text-xl font-semibold mb-6 text-center">Sélectionnez votre groupe</h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300">
+                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp101">
                         <img src="exp101.png" alt="EXP 101" class="group-logo mb-3">
                         <span class="font-medium">EXP 101</span>
                     </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300">
+                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp102">
                         <img src="exp102.png" alt="EXP 102" class="group-logo mb-3">
                         <span class="font-medium">EXP 102</span>
                     </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300">
+                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp103">
                         <img src="exp103.png" alt="EXP 103" class="group-logo mb-3">
                         <span class="font-medium">EXP 103</span>
                     </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300">
-                        <img src="IMG-20240324-WA0000.jpg" alt="EXP 104" class="group-logo mb-3">
+                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp104">
+                        <img src="exp104.png" alt="EXP 104" class="group-logo mb-3">
                         <span class="font-medium">EXP 104</span>
                     </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300">
+                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp105">
                         <img src="exp105.png" alt="EXP 105" class="group-logo mb-3">
                         <span class="font-medium">EXP 105</span>
                     </div>
@@ -75,12 +98,76 @@
 
         <section class="mb-12">
             <div class="max-w-4xl mx-auto">
-                <h2 class="text-xl font-semibold mb-6 text-center">Emploi du temps</h2>
+                <h2 class="text-xl font-semibold mb-6 text-center">Emploi du temps - <span id="selected-group">Sélectionnez un groupe</span></h2>
                 <div class="schedule-card p-6">
-                    <div class="flex justify-center items-center h-96">
+                    <div id="empty-schedule" class="flex justify-center items-center h-96">
                         <div class="text-center">
                             <i data-feather="calendar" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
                             <p class="text-gray-500">Sélectionnez un groupe pour afficher l'emploi du temps</p>
+                        </div>
+                    </div>
+                    <div id="schedule-content" class="hidden">
+                        <div class="overflow-x-auto">
+                            <table class="schedule-table">
+                                <thead>
+                                    <tr>
+                                        <th class="time-header">Heure/Jour</th>
+                                        <th>Lundi</th>
+                                        <th>Mardi</th>
+                                        <th>Mercredi</th>
+                                        <th>Jeudi</th>
+                                        <th>Vendredi</th>
+                                        <th>Samedi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="time-header">08:30 - 10:00</td>
+                                        <td id="mon-1">-</td>
+                                        <td id="tue-1">-</td>
+                                        <td id="wed-1">-</td>
+                                        <td id="thu-1">-</td>
+                                        <td id="fri-1">-</td>
+                                        <td id="sat-1">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-header">10:15 - 11:45</td>
+                                        <td id="mon-2">-</td>
+                                        <td id="tue-2">-</td>
+                                        <td id="wed-2">-</td>
+                                        <td id="thu-2">-</td>
+                                        <td id="fri-2">-</td>
+                                        <td id="sat-2">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-header">12:00 - 13:30</td>
+                                        <td id="mon-3">-</td>
+                                        <td id="tue-3">-</td>
+                                        <td id="wed-3">-</td>
+                                        <td id="thu-3">-</td>
+                                        <td id="fri-3">-</td>
+                                        <td id="sat-3">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-header">14:30 - 16:00</td>
+                                        <td id="mon-4">-</td>
+                                        <td id="tue-4">-</td>
+                                        <td id="wed-4">-</td>
+                                        <td id="thu-4">-</td>
+                                        <td id="fri-4">-</td>
+                                        <td id="sat-4">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-header">16:15 - 17:45</td>
+                                        <td id="mon-5">-</td>
+                                        <td id="tue-5">-</td>
+                                        <td id="wed-5">-</td>
+                                        <td id="thu-5">-</td>
+                                        <td id="fri-5">-</td>
+                                        <td id="sat-5">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -125,6 +212,141 @@
         </section>
     </main>
 
+    <footer class="border-t border-gray-200 py-6 px-6 text-center text-sm text-gray-600">
+        <p>OFPPT - Direction Régionale © 2024. Tous droits réservés.</p>
+        <div class="mt-2 flex justify-center space-x-4">
+            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="facebook"></i></a>
+            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="twitter"></i></a>
+            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="instagram"></i></a>
+        </div>
+    </footer>
+
+    <script>
+        feather.replace();
+        
+        // Sample schedule data for demonstration
+        const scheduleData = {
+            exp101: {
+                name: "EXP 101",
+                schedule: {
+                    "mon-1": "Mathématiques",
+                    "mon-2": "Physique",
+                    "mon-3": "Informatique",
+                    "tue-1": "Anglais",
+                    "tue-3": "Électronique",
+                    "wed-2": "Mathématiques",
+                    "wed-4": "TP Physique",
+                    "thu-1": "Informatique",
+                    "thu-3": "Électronique",
+                    "fri-2": "Anglais",
+                    "fri-4": "TP Informatique"
+                }
+            },
+            exp102: {
+                name: "EXP 102",
+                schedule: {
+                    "mon-2": "Électronique",
+                    "mon-4": "TP Mathématiques",
+                    "tue-1": "Physique",
+                    "tue-3": "Informatique",
+                    "wed-1": "Anglais",
+                    "wed-3": "Mathématiques",
+                    "thu-2": "Physique",
+                    "thu-4": "TP Électronique",
+                    "fri-1": "Informatique",
+                    "fri-3": "Anglais"
+                }
+            },
+            exp103: {
+                name: "EXP 103",
+                schedule: {
+                    "mon-1": "Anglais",
+                    "mon-3": "Mathématiques",
+                    "tue-2": "Physique",
+                    "tue-4": "TP Informatique",
+                    "wed-1": "Électronique",
+                    "wed-3": "Informatique",
+                    "thu-2": "Mathématiques",
+                    "thu-4": "TP Physique",
+                    "fri-1": "Anglais",
+                    "fri-3": "Électronique"
+                }
+            },
+            exp104: {
+                name: "EXP 104",
+                schedule: {
+                    "mon-2": "Informatique",
+                    "mon-4": "TP Électronique",
+                    "tue-1": "Mathématiques",
+                    "tue-3": "Physique",
+                    "wed-2": "Anglais",
+                    "wed-4": "TP Mathématiques",
+                    "thu-1": "Électronique",
+                    "thu-3": "Informatique",
+                    "fri-2": "Physique",
+                    "fri-4": "TP Anglais"
+                }
+            },
+            exp105: {
+                name: "EXP 105",
+                schedule: {
+                    "mon-1": "Physique",
+                    "mon-3": "Électronique",
+                    "tue-2": "Informatique",
+                    "tue-4": "TP Anglais",
+                    "wed-1": "Mathématiques",
+                    "wed-3": "Physique",
+                    "thu-2": "Électronique",
+                    "thu-4": "TP Informatique",
+                    "fri-1": "Mathématiques",
+                    "fri-3": "Anglais"
+                }
+            }
+        };
+
+        document.querySelectorAll('.select-group').forEach(group => {
+            group.addEventListener('click', function() {
+                const groupId = this.getAttribute('data-group');
+                loadSchedule(groupId);
+            });
+        });
+
+        function loadSchedule(groupId) {
+            const groupData = scheduleData[groupId];
+            
+            if (!groupData) {
+                alert(`Données non disponibles pour ${groupId}`);
+                return;
+            }
+
+            // Update selected group title
+            document.getElementById('selected-group').textContent = groupData.name;
+
+            // Hide empty message and show schedule
+            document.getElementById('empty-schedule').classList.add('hidden');
+            document.getElementById('schedule-content').classList.remove('hidden');
+
+            // Clear all cells first
+            const allCells = document.querySelectorAll('[id$="-1"], [id$="-2"], [id$="-3"], [id$="-4"], [id$="-5"]');
+            allCells.forEach(cell => {
+                cell.textContent = '-';
+            });
+
+            // Fill in the schedule data
+            for (const [cellId, subject] of Object.entries(groupData.schedule)) {
+                const cell = document.getElementById(cellId);
+                if (cell) {
+                    cell.textContent = subject;
+                }
+            }
+
+            // Refresh feather icons
+            feather.replace();
+        }
+    </script>
+</body>
+</html>
+```
     <footer class="border-t border-gray-200 py-6 px-6 text-center text-sm text-gray-600">
         <p>OFPPT - Direction Régionale © 2024. Tous droits réservés.</p>
         <div class="mt-2 flex justify-center space-x-4">
