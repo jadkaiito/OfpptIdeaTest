@@ -1,370 +1,1871 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OFPPT TimeTunes</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
+    <title>School Schedule Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2c5f7e;
+            --primary-dark: #1a3d52;
+            --primary-light: #e3f2fd;
+            --accent: #e8934c;
+            --bg-page: #f1f5f9; /* Default to student grey */
+            --bg-card: #ffffff;
+            --text-main: #2a2a2a;
+            --text-muted: #6a6a6a;
+            --border: #eaeff2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+            --half-time-bg: #fef08a;
+            --full-time-bg: #bfdbfe;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+            overflow-x: hidden;
+            transition: background-color 0.3s;
         }
-        .gradient-bg {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+
+        /* Admin Mode Specific Background */
+        body.admin-mode {
+            --primary: #2c5f7e;
+            --bg-page: #f4f6f8;
         }
-        .schedule-card {
-            background-color: white;
-            border-radius: 1rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        /* Student Mode Specific Colors */
+        body:not(.admin-mode) {
+            --primary: #475569; 
         }
-        .group-logo {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
+
+        .container { max-width: 1600px; margin: 0 auto; }
+
+        /* --- View Switcher --- */
+        .view-switcher {
+            display: flex;
+            background: #cbd5e1;
+            padding: 4px;
+            border-radius: 10px;
+            width: fit-content;
+            margin-bottom: 20px;
         }
-        .select-group {
-            transition: all 0.3s ease;
-        }
-        .select-group:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .schedule-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .schedule-table th, .schedule-table td {
-            border: 1px solid #e5e7eb;
-            padding: 0.75rem;
-            text-align: center;
-        }
-        .schedule-table th {
-            background-color: #f8fafc;
+
+        .view-btn {
+            padding: 8px 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 8px;
             font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
         }
-        .schedule-table td {
-            background-color: white;
+
+        .view-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .schedule-table .time-header {
-            background-color: #6366f1;
-            color: white;
+        
+        /* --- Group Selector (New Style) --- */
+        .group-select-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
-        .hidden {
+        .group-select-wrapper label {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+        .group-select-wrapper select {
+            border: none;
+            font-size = 1em;
+            font-weight = 500;
+            color = var(--text-main);
+            background = transparent;
+            cursor = pointer;
+            outline = none;
+            padding-right = 20px;
+        }
+
+        /* --- Header Section --- */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
+        .header-content h1 { font-family: 'Crimson Pro', serif; font-size: 2.5em; color: var(--primary); margin-bottom: 5px; }
+        .header-content p { color: var(--text-muted); font-size: 1.1em; }
+        
+        .role-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+        }
+        .admin-mode .role-badge { background: #ffe4e6; color: #be123c; } 
+        body:not(.admin-mode) .role-badge { background: #dcfce7; color: #15803d; } 
+
+        /* --- Admin Only Controls --- */
+        .admin-controls { display: none; gap: 10px; }
+        .admin-mode .admin-controls { display: flex; }
+
+        /* --- Buttons --- */
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-secondary { background: white; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-secondary:hover { background: #f8fafc; transform: translateY(-1px); }
+        .btn-danger-ghost { background: transparent; color: var(--danger); border: 1px solid transparent; }
+        .btn-danger-ghost:hover { background: #fee2e2; }
+        .btn-icon { padding: 8px; border-radius: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        /* --- Main Table Card --- */
+        .schedule-card {
+            background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow-md); overflow: hidden; border: 1px solid var(--border);
+        }
+        .table-wrapper { overflow-x: auto; padding-bottom: 20px; }
+        .schedule-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1200px; }
+
+        .schedule-table thead th {
+            background: var(--primary); color: white; padding: 18px; text-align: center; font-weight: 500; position: sticky; top: 0; z-index: 10;
+        }
+        .schedule-table thead th.current-day { background: var(--accent); }
+
+        .schedule-table td, .schedule-table tbody th {
+            border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: top; transition: background 0.2s;
+        }
+        
+        .schedule-table tbody th { background: #f8fafc; color: var(--text-muted); padding: 15px; font-weight: 500; text-align: center; width: 100px; }
+        .schedule-table td { height: 100px; width: 13.5%; padding: 10px; position: relative; }
+        
+        /* Admin Interactions */
+        .admin-mode .schedule-table td { cursor: pointer; }
+        .admin-mode .schedule-table td:not(.has-session):hover { background-color: #f1f5f9; }
+        .admin-mode .schedule-table td:not(.has-session):hover::after { 
+            content: '+ Add'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            color: var(--primary); font-weight: 600; opacity: 0.6; pointer-events: none; 
+        }
+
+        /* --- Session Card --- */
+        .session-card {
+            padding: 10px; border-radius: 6px; height: 100%; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; position: relative; overflow: hidden;
+            border-left: 4px solid var(--primary); transition: transform 0.2s;
+        }
+        .session-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .session-card.half-time { border-left-color: var(--accent); background-color: var(--half-time-bg); }
+        .session-card.full-time { border-left-color: var(--primary); background-color: var(--full-time-bg); }
+
+        .session-subject { font-weight: 700; color: #1e293b; font-size: 1.05em; margin-bottom: 4px; }
+        .session-teacher { font-size: 0.85em; color: var(--text-muted); margin-bottom: 8px; }
+        .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600; margin-top: auto; align-self: flex-start; }
+        .tag.classroom { background: #e0f2fe; color: #0369a1; }
+        .tag.teams { background: #ebe4ff; color: #5b21b6; }
+
+        .session-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.9); 
+            display: flex; align-items: center; justify-content: center; gap: 10px; opacity: 0; transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .session-overlay button {
+            pointer-events: auto;
+        }
+        .admin-mode .session-card:hover .session-overlay { opacity: 1; }
+
+        /* --- Modals --- */
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1000; 
+            display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .modal-backdrop.active { display: flex; opacity: 1; }
+        .modal { background: white; border-radius: 16px; width: 100%; max-width: 450px; padding: 30px; transform: scale(0.95); transition: transform 0.3s; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .modal-backdrop.active .modal { transform: scale(1); }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.85em; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1em; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: white; padding: 16px 20px; border-radius: 10px; box-shadow: var(--shadow-md); border-left: 5px solid var(--primary); display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s ease forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Login specific styles */
+        .login-header { text-align: center; margin-bottom: 25px; }
+        .login-header h2 { font-family: 'Crimson Pro', serif; color: var(--primary); font-size: 2em; }
+        .login-header p { color: var(--text-muted); font-size: 0.9em; margin-top: 5px; }
+
+        /* Conflict Warning */
+        .conflict-warning {
+            background: #fef2f2;
+            border: 2px solid #fca5a5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 15px;
             display: none;
+        }
+        .conflict-warning.active { display: block; }
+        .conflict-warning-title {
+            font-weight: 700;
+            color: #dc2626;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .conflict-warning-text {
+            color: #991b1b;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        /* Autocomplete Dropdown */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--primary);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .autocomplete-list.active { display: block; }
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover {
+            background: var(--primary-light);
+        }
+        .autocomplete-item.selected {
+            background: var(--primary-light);
+        }
+        .add-new-option {
+            color: var(--primary);
+            font-weight: 600;
+            font-style: italic;
+        }
+
+        /* Database Manager List Items */
+        .db-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        .db-list-item:last-child { border-bottom: none; }
+        .db-list-item:hover { background: #f8fafc; }
+        .db-list-item-name {
+            flex: 1;
+            font-size: 0.95em;
+        }
+        .db-list-item-delete {
+            color: var(--danger);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.15s;
+            font-size: 0.9em;
+        }
+        .db-list-item-delete:hover {
+            background: #fee2e2;
+        }
+
+        /* Delete Confirmation Modal Specific */
+        .delete-confirmation-icon {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .delete-confirmation-icon span {
+            font-size: 48px;
+            color: var(--danger);
+        }
+        .delete-confirmation-text {
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--text-main);
+        }
+        .delete-confirmation-details {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--danger);
+        }
+        .delete-confirmation-details-title {
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+        .delete-confirmation-details-content {
+            color: var(--text-muted);
+            font-size: 0.95em;
+        }
+        .delete-confirmation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-    <header class="gradient-bg text-white">
-        <div class="container mx-auto px-6 py-8">
-            <div class="flex flex-col items-center">
-                <h1 class="text-3xl md:text-4xl font-bold text-center mb-2">OFPPT TimeTunes</h1>
-                <p class="text-white/90 text-center">Votre emploi du temps en un clin d'œil</p>
+<body> <div class="container">
+        
+        <div class="view-switcher">
+            <button class="view-btn" id="btnAdmin" onclick="requestAdminAccess()">Admin View</button>
+            <button class="view-btn active" id="btnStudent" onclick="switchToStudent()">Student View</button>
+        </div>
+
+        <header>
+            <div class="header-content">
+                <span class="role-badge" id="roleBadge">Student View</span>
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                    <h1>Flexible Block Schedule</h1>
+                    
+                    <div class="group-select-wrapper">
+                        <label for="groupSelect">Group:</label>
+                        <select id="groupSelect" onchange="handleGroupChange(this.value)">
+                            </select>
+                    </div>
+                </div>
+                <p>2.5 hour (Half-Time) and 5 hour (Full-Time) Blocks</p>
+            </div>
+            
+            <div class="admin-controls">
+                <button class="btn btn-secondary" onclick="exportSchedule()"><span>📥 Export</span></button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()"><span>📤 Import</span></button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importSchedule(event)">
+                <button class="btn btn-secondary" onclick="openDatabaseManager()"><span>👥 Database</span></button>
+                <button class="btn btn-danger-ghost" onclick="clearAllSchedule()"><span>Clear All</span></button>
+            </div>
+        </header>
+
+        <div class="schedule-card">
+            <div class="table-wrapper">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th data-day="Monday">Monday</th>
+                            <th data-day="Tuesday">Tuesday</th>
+                            <th data-day="Wednesday">Wednesday</th>
+                            <th data-day="Thursday">Thursday</th>
+                            <th data-day="Friday">Friday</th>
+                            <th data-day="Saturday">Saturday</th>
+                            <th data-day="Sunday">Sunday</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody">
+                        </tbody>
+                </table>
             </div>
         </div>
-    </header>
+    </div>
 
-    <main class="flex-grow container mx-auto px-4 py-8 -mt-12">
-        <section class="mb-12">
-            <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
-                <h2 class="text-xl font-semibold mb-6 text-center">Sélectionnez votre groupe</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp101">
-                        <img src="exp101.png" alt="EXP 101" class="group-logo mb-3">
-                        <span class="font-medium">EXP 101</span>
-                    </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp102">
-                        <img src="exp102.png" alt="EXP 102" class="group-logo mb-3">
-                        <span class="font-medium">EXP 102</span>
-                    </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp103">
-                        <img src="exp103.png" alt="EXP 103" class="group-logo mb-3">
-                        <span class="font-medium">EXP 103</span>
-                    </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp104">
-                        <img src="exp104.png" alt="EXP 104" class="group-logo mb-3">
-                        <span class="font-medium">EXP 104</span>
-                    </div>
-                    <div class="select-group bg-white rounded-lg p-4 border border-gray-200 flex flex-col items-center cursor-pointer hover:border-indigo-300" data-group="exp105">
-                        <img src="exp105.png" alt="EXP 105" class="group-logo mb-3">
-                        <span class="font-medium">EXP 105</span>
-                    </div>
-                </div>
+    <div id="loginModal" class="modal-backdrop">
+        <div class="modal" style="max-width: 400px;">
+            <div class="login-header">
+                <h2>Admin Login</h2>
+                <p>Please enter your credentials to edit</p>
             </div>
-        </section>
-
-        <section class="mb-12">
-            <div class="max-w-4xl mx-auto">
-                <h2 class="text-xl font-semibold mb-6 text-center">Emploi du temps - <span id="selected-group">Sélectionnez un groupe</span></h2>
-                <div class="schedule-card p-6">
-                    <div id="empty-schedule" class="flex justify-center items-center h-96">
-                        <div class="text-center">
-                            <i data-feather="calendar" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
-                            <p class="text-gray-500">Sélectionnez un groupe pour afficher l'emploi du temps</p>
-                        </div>
-                    </div>
-                    <div id="schedule-content" class="hidden">
-                        <div class="overflow-x-auto">
-                            <table class="schedule-table">
-                                <thead>
-                                    <tr>
-                                        <th class="time-header">Heure/Jour</th>
-                                        <th>Lundi</th>
-                                        <th>Mardi</th>
-                                        <th>Mercredi</th>
-                                        <th>Jeudi</th>
-                                        <th>Vendredi</th>
-                                        <th>Samedi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="time-header">08:30 - 10:00</td>
-                                        <td id="mon-1">-</td>
-                                        <td id="tue-1">-</td>
-                                        <td id="wed-1">-</td>
-                                        <td id="thu-1">-</td>
-                                        <td id="fri-1">-</td>
-                                        <td id="sat-1">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="time-header">10:15 - 11:45</td>
-                                        <td id="mon-2">-</td>
-                                        <td id="tue-2">-</td>
-                                        <td id="wed-2">-</td>
-                                        <td id="thu-2">-</td>
-                                        <td id="fri-2">-</td>
-                                        <td id="sat-2">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="time-header">12:00 - 13:30</td>
-                                        <td id="mon-3">-</td>
-                                        <td id="tue-3">-</td>
-                                        <td id="wed-3">-</td>
-                                        <td id="thu-3">-</td>
-                                        <td id="fri-3">-</td>
-                                        <td id="sat-3">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="time-header">14:30 - 16:00</td>
-                                        <td id="mon-4">-</td>
-                                        <td id="tue-4">-</td>
-                                        <td id="wed-4">-</td>
-                                        <td id="thu-4">-</td>
-                                        <td id="fri-4">-</td>
-                                        <td id="sat-4">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="time-header">16:15 - 17:45</td>
-                                        <td id="mon-5">-</td>
-                                        <td id="tue-5">-</td>
-                                        <td id="wed-5">-</td>
-                                        <td id="thu-5">-</td>
-                                        <td id="fri-5">-</td>
-                                        <td id="sat-5">-</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+            
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" placeholder="admin@school.com">
             </div>
-        </section>
-
-        <section>
-            <div class="max-w-4xl mx-auto">
-                <h2 class="text-xl font-semibold mb-6 text-center">Annonces administratives</h2>
-                <div class="schedule-card p-6">
-                    <div class="space-y-6">
-                        <div class="flex items-start">
-                            <div class="bg-indigo-100 p-3 rounded-full mr-4">
-                                <i data-feather="bell" class="w-5 h-5 text-indigo-600"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-medium">Réunion pédagogique</h3>
-                                <p class="text-sm text-gray-600 mt-1">15 Mars 2024 - 10h00 en salle A12</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="bg-indigo-100 p-3 rounded-full mr-4">
-                                <i data-feather="alert-triangle" class="w-5 h-5 text-indigo-600"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-medium">Délai de remise des projets</h3>
-                                <p class="text-sm text-gray-600 mt-1">Les projets du module M12 doivent être remis avant le 20 Mars</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="bg-indigo-100 p-3 rounded-full mr-4">
-                                <i data-feather="map-pin" class="w-5 h-5 text-indigo-600"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-medium">Changement de salle</h3>
-                                <p class="text-sm text-gray-600 mt-1">Les cours de l'après-midi du 12 Mars auront lieu en salle B07</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="loginPass" placeholder="••••••••">
             </div>
-        </section>
-    </main>
 
-    <footer class="border-t border-gray-200 py-6 px-6 text-center text-sm text-gray-600">
-        <p>OFPPT - Direction Régionale © 2024. Tous droits réservés.</p>
-        <div class="mt-2 flex justify-center space-x-4">
-            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="facebook"></i></a>
-            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="twitter"></i></a>
-            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="instagram"></i></a>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeLoginModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="attemptLogin()">Login</button>
+            </div>
         </div>
-    </footer>
+    </div>
+
+    <div id="sessionModal" class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 style="color:var(--primary); margin-bottom:20px;" id="modalTitle">Add Session</h2>
+            </div>
+            
+            <input type="hidden" id="modalDay">
+            <input type="hidden" id="modalTimeSlot">
+            <input type="hidden" id="modalMode"> 
+
+            <div class="conflict-warning" id="conflictWarning">
+                <div class="conflict-warning-title">
+                    <span>⚠️</span>
+                    <span>Schedule Conflict Detected</span>
+                </div>
+                <div class="conflict-warning-text" id="conflictWarningText"></div>
+            </div>
+
+            <div class="input-group">
+                <label>Block Info</label>
+                <input type="text" id="modalBlockDisplay" disabled style="background-color: #f0f0f0;">
+            </div>
+
+            <div class="input-group">
+                <label>Duration Type</label>
+                <select id="inpSessionType">
+                    <option value="half">Half-Time (2.5 Hours)</option>
+                    <option value="full">Full-Time (5 Hours)</option>
+                </select>
+            </div>
+
+            <div class="input-group autocomplete-wrapper">
+                <label>Subject</label>
+                <input type="text" id="inpSubject" placeholder="e.g. Mathematics" autocomplete="off">
+                <div class="autocomplete-list" id="subjectAutocomplete"></div>
+            </div>
+
+            <div class="input-group autocomplete-wrapper">
+                <label>Teacher</label>
+                <input type="text" id="inpTeacher" placeholder="e.g. Mr. Anderson" autocomplete="off">
+                <div class="autocomplete-list" id="teacherAutocomplete"></div>
+            </div>
+
+            <div class="input-group">
+                <label>Location</label>
+                <select id="inpLocation">
+                    <option value="classroom">🏫 Physical Classroom</option>
+                    <option value="teams">💻 Microsoft Teams</option>
+                </select>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeSessionModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSession()">Save Session</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="databaseModal" class="modal-backdrop">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 style="color:var(--primary); margin-bottom:20px;">Manage Database</h2>
+                <p style="color:var(--text-muted); font-size:0.9em;">Add or remove teachers and subjects for autocomplete</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <!-- Teachers Section -->
+                <div>
+                    <h3 style="color:var(--primary); margin-bottom:10px; font-size:1.1em;">Teachers</h3>
+                    <div class="input-group">
+                        <input type="text" id="newTeacherInput" placeholder="Add new teacher..." style="margin-bottom: 10px;">
+                        <button class="btn btn-primary" onclick="addNewTeacher()" style="width: 100%; margin-bottom: 15px;">+ Add Teacher</button>
+                    </div>
+                    <div id="teachersList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+                        <!-- Teachers will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Subjects Section -->
+                <div>
+                    <h3 style="color:var(--primary); margin-bottom:10px; font-size:1.1em;">Subjects</h3>
+                    <div class="input-group">
+                        <input type="text" id="newSubjectInput" placeholder="Add new subject..." style="margin-bottom: 10px;">
+                        <button class="btn btn-primary" onclick="addNewSubject()" style="width: 100%; margin-bottom: 15px;">+ Add Subject</button>
+                    </div>
+                    <div id="subjectsList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+                        <!-- Subjects will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeDatabaseManager()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmationModal" class="modal-backdrop">
+        <div class="modal" style="max-width: 450px;">
+            <div class="delete-confirmation-icon">
+                <span>🗑️</span>
+            </div>
+            <div class="delete-confirmation-text">
+                <h2 style="color:var(--danger); margin-bottom:10px;">Delete Session?</h2>
+                <p style="color:var(--text-muted);">This action cannot be undone.</p>
+            </div>
+            
+            <div class="delete-confirmation-details">
+                <div class="delete-confirmation-details-title">Session Details:</div>
+                <div class="delete-confirmation-details-content" id="deleteSessionDetails">
+                    <!-- Session details will be populated here -->
+                </div>
+            </div>
+            
+            <input type="hidden" id="deleteModalDay">
+            <input type="hidden" id="deleteModalTimeSlot">
+            
+            <div class="delete-confirmation-buttons">
+                <button class="btn btn-secondary" onclick="closeDeleteConfirmationModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDeleteSession()">Delete Session</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <script>
-        feather.replace();
-        
-        // Sample schedule data for demonstration
-        const scheduleData = {
-            exp101: {
-                name: "EXP 101",
-                schedule: {
-                    "mon-1": "Mathématiques",
-                    "mon-2": "Physique",
-                    "mon-3": "Informatique",
-                    "tue-1": "Anglais",
-                    "tue-3": "Électronique",
-                    "wed-2": "Mathématiques",
-                    "wed-4": "TP Physique",
-                    "thu-1": "Informatique",
-                    "thu-3": "Électronique",
-                    "fri-2": "Anglais",
-                    "fri-4": "TP Informatique"
-                }
-            },
-            exp102: {
-                name: "EXP 102",
-                schedule: {
-                    "mon-2": "Électronique",
-                    "mon-4": "TP Mathématiques",
-                    "tue-1": "Physique",
-                    "tue-3": "Informatique",
-                    "wed-1": "Anglais",
-                    "wed-3": "Mathématiques",
-                    "thu-2": "Physique",
-                    "thu-4": "TP Électronique",
-                    "fri-1": "Informatique",
-                    "fri-3": "Anglais"
-                }
-            },
-            exp103: {
-                name: "EXP 103",
-                schedule: {
-                    "mon-1": "Anglais",
-                    "mon-3": "Mathématiques",
-                    "tue-2": "Physique",
-                    "tue-4": "TP Informatique",
-                    "wed-1": "Électronique",
-                    "wed-3": "Informatique",
-                    "thu-2": "Mathématiques",
-                    "thu-4": "TP Physique",
-                    "fri-1": "Anglais",
-                    "fri-3": "Électronique"
-                }
-            },
-            exp104: {
-                name: "EXP 104",
-                schedule: {
-                    "mon-2": "Informatique",
-                    "mon-4": "TP Électronique",
-                    "tue-1": "Mathématiques",
-                    "tue-3": "Physique",
-                    "wed-2": "Anglais",
-                    "wed-4": "TP Mathématiques",
-                    "thu-1": "Électronique",
-                    "thu-3": "Informatique",
-                    "fri-2": "Physique",
-                    "fri-4": "TP Anglais"
-                }
-            },
-            exp105: {
-                name: "EXP 105",
-                schedule: {
-                    "mon-1": "Physique",
-                    "mon-3": "Électronique",
-                    "tue-2": "Informatique",
-                    "tue-4": "TP Anglais",
-                    "wed-1": "Mathématiques",
-                    "wed-3": "Physique",
-                    "thu-2": "Électronique",
-                    "thu-4": "TP Informatique",
-                    "fri-1": "Mathématiques",
-                    "fri-3": "Anglais"
-                }
-            }
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDs8t-MBzEecEo7bombhzmANB4meN0gazs",
+            authDomain: "schedule-manager-bdfd7.firebaseapp.com",
+            projectId: "schedule-manager-bdfd7",
+            storageBucket: "schedule-manager-bdfd7.firebasestorage.app",
+            messagingSenderId: "233811780070",
+            appId: "1:233811780070:web:b74287abd90355af257627",
+            measurementId: "G-RPKZX5YTRQ"
         };
 
-        document.querySelectorAll('.select-group').forEach(group => {
-            group.addEventListener('click', function() {
-                const groupId = this.getAttribute('data-group');
-                loadSchedule(groupId);
-            });
-        });
+        // --- Configuration ---
+        // Defined the groups based on your requirements
+        const availableGroups = [
+            "101", "102", "103", "104", "105",
+            "TL 101-102", "TL 201-202",
+            "EXOT 201-202",
+            "EXOL 201", "EXOL 202", "EXOL 203"
+        ];
 
-        function loadSchedule(groupId) {
-            const groupData = scheduleData[groupId];
+        // --- State Management ---
+        let isAdminLoggedIn = false;
+        let schedule = {};
+        let currentGroup = availableGroups[0]; // Default to first group
+        let db; // Firestore database instance
+        
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const timeSlots = ['08:30-11:00', '11:00-13:30', '13:30-16:00', '16:00-18:30'];
+
+        // --- Teacher & Subject Database ---
+        let teachersDB = new Set();
+        let subjectsDB = new Set();
+
+        // Default initial data (will be used if no data exists)
+        const defaultTeachers = [
+            'Mr. Anderson', 'Mrs. Johnson', 'Dr. Smith', 'Ms. Williams', 
+            'Mr. Brown', 'Mrs. Davis', 'Prof. Martinez', 'Mr. Garcia',
+            'Ms. Rodriguez', 'Dr. Wilson', 'Mrs. Moore', 'Mr. Taylor'
+        ];
+
+        const defaultSubjects = [
+            'Mathematics', 'Physics', 'Chemistry', 'Biology', 
+            'English Literature', 'History', 'Geography', 'Computer Science',
+            'Art', 'Music', 'Physical Education', 'French', 'Spanish',
+            'Economics', 'Business Studies', 'Psychology'
+        ];
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                // Initialize Firebase
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                console.log("Firebase initialized successfully");
+                
+                // Set up auth state listener
+                setupAuthStateListener();
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                showToast("Firebase initialization failed. Please check console for details.", "error");
+            }
+        }
+
+        // Load teachers and subjects from Firebase
+        async function loadDatabase() {
+            try {
+                // Load teachers from Firebase
+                const teachersSnapshot = await db.collection('teachers').get();
+                teachersDB = new Set();
+                teachersSnapshot.forEach(doc => {
+                    teachersDB.add(doc.data().name);
+                });
+                
+                // Load subjects from Firebase
+                const subjectsSnapshot = await db.collection('subjects').get();
+                subjectsDB = new Set();
+                subjectsSnapshot.forEach(doc => {
+                    subjectsDB.add(doc.data().name);
+                });
+                
+                console.log("Database loaded from Firebase - Teachers:", teachersDB.size, "Subjects:", subjectsDB.size);
+                
+                // If database is empty, populate with initial data and save to Firebase
+                if (teachersDB.size === 0 || subjectsDB.size === 0) {
+                    console.log("Database empty, populating with default data...");
+                    defaultTeachers.forEach(t => teachersDB.add(t));
+                    defaultSubjects.forEach(s => subjectsDB.add(s));
+                    
+                    // Save default data to Firebase
+                    await saveDatabaseToFirebase();
+                }
+            } catch (error) {
+                console.error("Error loading database from Firebase:", error);
+                showToast("Error loading database from Firebase. Please check your internet connection.", "error");
+                
+                // Show empty sets if Firebase fails
+                teachersDB = new Set();
+                subjectsDB = new Set();
+            }
+        }
+
+        async function saveDatabaseToFirebase() {
+            if (!db) {
+                console.error("Firestore not initialized");
+                showToast("Database not available. Please check internet connection.", "error");
+                return;
+            }
             
-            if (!groupData) {
-                alert(`Données non disponibles pour ${groupId}`);
+            try {
+                // Clear existing data first
+                await clearFirebaseCollection('teachers');
+                await clearFirebaseCollection('subjects');
+                
+                // Save teachers to Firebase
+                const teachersBatch = db.batch();
+                teachersDB.forEach(teacher => {
+                    const docRef = db.collection('teachers').doc();
+                    teachersBatch.set(docRef, { name: teacher });
+                });
+                
+                // Save subjects to Firebase
+                const subjectsBatch = db.batch();
+                subjectsDB.forEach(subject => {
+                    const docRef = db.collection('subjects').doc();
+                    subjectsBatch.set(docRef, { name: subject });
+                });
+                
+                await teachersBatch.commit();
+                await subjectsBatch.commit();
+                console.log("Database saved to Firebase");
+            } catch (error) {
+                console.error("Error saving database to Firebase:", error);
+                showToast("Failed to save database to cloud", "error");
+            }
+        }
+
+        async function clearFirebaseCollection(collectionName) {
+            try {
+                const snapshot = await db.collection(collectionName).get();
+                const batch = db.batch();
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            } catch (error) {
+                console.error(`Error clearing ${collectionName} collection:`, error);
+            }
+        }
+
+        async function addToDatabase(teacher, subject) {
+            if (teacher && teacher.trim() !== '' && teacher !== 'TBA') {
+                const teacherName = teacher.trim();
+                if (!teachersDB.has(teacherName)) {
+                    teachersDB.add(teacherName);
+                    // Save to Firebase
+                    if (db) {
+                        try {
+                            await db.collection('teachers').add({ name: teacherName });
+                        } catch (error) {
+                            console.error("Error saving teacher to Firebase:", error);
+                        }
+                    }
+                }
+            }
+            if (subject && subject.trim() !== '') {
+                const subjectName = subject.trim();
+                if (!subjectsDB.has(subjectName)) {
+                    subjectsDB.add(subjectName);
+                    // Save to Firebase
+                    if (db) {
+                        try {
+                            await db.collection('subjects').add({ name: subjectName });
+                        } catch (error) {
+                            console.error("Error saving subject to Firebase:", error);
+                        }
+                    }
+                }
+            }
+            
+            // NO localStorage backup - using Firebase only
+        }
+
+        // --- Firebase Authentication ---
+        function setupAuthStateListener() {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    // User is signed in
+                    isAdminLoggedIn = true;
+                    setAdminUI(true);
+                    console.log("User signed in:", user.email);
+                } else {
+                    // User is signed out
+                    isAdminLoggedIn = false;
+                    setAdminUI(false);
+                    console.log("User signed out");
+                }
+            });
+        }
+
+        // --- Login / View Logic ---
+        function requestAdminAccess() {
+            if (isAdminLoggedIn) {
+                setAdminUI(true);
+            } else {
+                document.getElementById('loginModal').classList.add('active');
+                document.getElementById('loginEmail').focus();
+            }
+        }
+
+        async function switchToStudent() {
+            try {
+                await firebase.auth().signOut();
+                isAdminLoggedIn = false;
+                setAdminUI(false);
+                showToast("Logged out - Student View Active", "info");
+            } catch (error) {
+                console.error("Sign out error:", error);
+                showToast("Error logging out", "error");
+            }
+        }
+
+        async function attemptLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPass').value;
+
+            if (!email || !password) {
+                showToast("Please enter email and password", "error");
                 return;
             }
 
-            // Update selected group title
-            document.getElementById('selected-group').textContent = groupData.name;
+            try {
+                showToast("Logging in...", "info");
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+                closeLoginModal();
+                showToast("Login Successful!", "success");
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPass').value = '';
+            } catch (error) {
+                console.error("Login error:", error);
+                let errorMessage = "Login failed";
+                
+                switch (error.code) {
+                    case 'auth/invalid-email':
+                        errorMessage = "Invalid email address";
+                        break;
+                    case 'auth/user-disabled':
+                        errorMessage = "Account disabled";
+                        break;
+                    case 'auth/user-not-found':
+                        errorMessage = "User not found";
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = "Incorrect password";
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = "Too many attempts. Try again later";
+                        break;
+                    default:
+                        errorMessage = error.message || "Login failed";
+                }
+                
+                showToast(errorMessage, "error");
+            }
+        }
 
-            // Hide empty message and show schedule
-            document.getElementById('empty-schedule').classList.add('hidden');
-            document.getElementById('schedule-content').classList.remove('hidden');
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('loginPass').value = '';
+        }
 
-            // Clear all cells first
-            const allCells = document.querySelectorAll('[id$="-1"], [id$="-2"], [id$="-3"], [id$="-4"], [id$="-5"]');
-            allCells.forEach(cell => {
-                cell.textContent = '-';
+        function setAdminUI(isAdmin) {
+            const body = document.body;
+            const badge = document.getElementById('roleBadge');
+            const btnAdmin = document.getElementById('btnAdmin');
+            const btnStudent = document.getElementById('btnStudent');
+
+            if (isAdmin) {
+                body.classList.add('admin-mode');
+                badge.textContent = 'Administrator';
+                btnAdmin.classList.add('active');
+                btnStudent.classList.remove('active');
+            } else {
+                body.classList.remove('admin-mode');
+                badge.textContent = 'Student View';
+                btnAdmin.classList.remove('active');
+                btnStudent.classList.add('active');
+            }
+            renderSchedule();
+        }
+
+        // --- Group & Data Handling ---
+        
+        function initGroupSelector() {
+            const selector = document.getElementById('groupSelect');
+            selector.innerHTML = '';
+            availableGroups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group;
+                option.textContent = group;
+                if(group === currentGroup) option.selected = true;
+                selector.appendChild(option);
+            });
+        }
+
+        async function handleGroupChange(newGroup) {
+            if (newGroup === currentGroup) return;
+            
+            currentGroup = newGroup;
+            showToast(`Loading schedule for Group ${newGroup}...`, 'info');
+            
+            // Load schedule for the new group
+            await loadSchedule();
+            renderSchedule();
+            showToast(`Switched to Group ${newGroup}`, 'info');
+        }
+
+        function initSchedule() {
+            schedule = {};
+            timeSlots.forEach(slot => {
+                schedule[slot] = {};
+                days.forEach(day => schedule[slot][day] = null);
+            });
+        }
+
+        async function loadSchedule() {
+            console.log("Loading schedule for group:", currentGroup);
+            
+            // Initialize empty schedule first
+            initSchedule();
+            
+            // Try to load from Firebase
+            if (db) {
+                try {
+                    const scheduleRef = db.collection('schedules').doc(currentGroup);
+                    const doc = await scheduleRef.get();
+                    
+                    if (doc.exists) {
+                        const data = doc.data();
+                        schedule = data.schedule || {};
+                        console.log("Schedule loaded from Firebase for group:", currentGroup);
+                        
+                        // Also update localStorage as cache
+                        localStorage.setItem(`schedule_${currentGroup}`, JSON.stringify(schedule));
+                    } else {
+                        console.log("No schedule found in Firebase for group", currentGroup);
+                        // Check localStorage cache as fallback
+                        const saved = localStorage.getItem(`schedule_${currentGroup}`);
+                        if (saved) {
+                            try {
+                                schedule = JSON.parse(saved);
+                                console.log("Schedule loaded from localStorage cache for group:", currentGroup);
+                            } catch(e) {
+                                console.log("Invalid localStorage data, initializing empty schedule");
+                                initSchedule();
+                            }
+                        } else {
+                            console.log("No cache found, initializing empty schedule");
+                            initSchedule();
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading schedule from Firebase:", error);
+                    // Fallback to localStorage cache
+                    const saved = localStorage.getItem(`schedule_${currentGroup}`);
+                    if (saved) {
+                        try {
+                            schedule = JSON.parse(saved);
+                            console.log("Schedule loaded from localStorage cache (Firebase error)");
+                        } catch(e) {
+                            initSchedule();
+                        }
+                    } else {
+                        initSchedule();
+                    }
+                    showToast("Using cached data. Check your internet connection.", "info");
+                }
+            } else {
+                console.error("Firestore not initialized");
+                // Fallback to localStorage if Firebase is not available
+                const saved = localStorage.getItem(`schedule_${currentGroup}`);
+                if (saved) {
+                    try {
+                        schedule = JSON.parse(saved);
+                    } catch(e) {
+                        initSchedule();
+                    }
+                } else {
+                    initSchedule();
+                }
+            }
+            
+            highlightCurrentDay();
+        }
+
+        async function saveScheduleToFirebase() {
+            if (!db) {
+                console.error("Firestore not initialized");
+                showToast("Cannot save to cloud. Please check internet connection.", "error");
+                return;
+            }
+            
+            try {
+                const scheduleRef = db.collection('schedules').doc(currentGroup);
+                await scheduleRef.set({
+                    schedule: schedule,
+                    group: currentGroup,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("Schedule saved to Firebase for group:", currentGroup);
+                
+                // Also update localStorage cache
+                localStorage.setItem(`schedule_${currentGroup}`, JSON.stringify(schedule));
+            } catch (error) {
+                console.error("Error saving schedule to Firebase:", error);
+                showToast("Failed to save to cloud, saved locally only", "error");
+                // Save to localStorage as fallback
+                localStorage.setItem(`schedule_${currentGroup}`, JSON.stringify(schedule));
+            }
+        }
+
+        // --- Rendering ---
+        function highlightCurrentDay() {
+            const todayIndex = new Date().getDay(); 
+            let mapIndex = todayIndex - 1; 
+            if (mapIndex === -1) mapIndex = 6;
+            
+            document.querySelectorAll('thead th').forEach(th => th.classList.remove('current-day'));
+            const header = document.querySelector(`thead th[data-day="${days[mapIndex]}"]`);
+            if (header) header.classList.add('current-day');
+        }
+
+        function getRowSpan(timeSlot, day) {
+            const session = schedule[timeSlot][day];
+            if (session) return session.type === 'full' ? 2 : 1;
+            
+            const index = timeSlots.indexOf(timeSlot);
+            if (index > 0) {
+                const prevSlot = timeSlots[index - 1];
+                const prevSession = schedule[prevSlot][day];
+                if (prevSession && prevSession.type === 'full') return 0;
+            }
+            return 1;
+        }
+
+        function renderSchedule() {
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
+
+            timeSlots.forEach(timeSlot => {
+                const row = document.createElement('tr');
+                
+                if (timeSlot === '08:30-11:00' || timeSlot === '13:30-16:00') {
+                    const timeHeader = document.createElement('th');
+                    const label = timeSlot.startsWith('08:30') ? '08:30<br>|<br>13:30' : '13:30<br>|<br>18:30';
+                    timeHeader.innerHTML = label;
+                    timeHeader.rowSpan = 2;
+                    timeHeader.style.verticalAlign = 'middle';
+                    row.appendChild(timeHeader);
+                }
+
+                days.forEach(day => {
+                    const rowSpan = getRowSpan(timeSlot, day);
+                    if (rowSpan === 0) return;
+
+                    const cell = document.createElement('td');
+                    cell.rowSpan = rowSpan;
+                    const session = schedule[timeSlot][day];
+
+                    if (session) {
+                        cell.classList.add('has-session');
+                        
+                        let adminOverlay = '';
+                        if (isAdminLoggedIn) {
+                            adminOverlay = `
+                                <div class="session-overlay">
+                                    <button class="btn btn-secondary btn-icon edit-btn">✏️</button>
+                                    <button class="btn btn-danger-ghost btn-icon delete-btn">🗑️</button>
+                                </div>
+                            `;
+                        }
+
+                        cell.innerHTML = `
+                            <div class="session-card ${session.type}-time">
+                                <div class="session-subject">${session.subject}</div>
+                                <div class="session-teacher">👤 ${session.teacher}</div>
+                                <div class="tag ${session.location}">
+                                    ${session.location === 'teams' ? 'Teams' : 'Room 101'}
+                                </div>
+                                ${adminOverlay}
+                            </div>
+                        `;
+                        
+                        // Add event listeners after creating the HTML
+                        if (isAdminLoggedIn) {
+                            const editBtn = cell.querySelector('.edit-btn');
+                            const deleteBtn = cell.querySelector('.delete-btn');
+                            
+                            if (editBtn) {
+                                editBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    openSessionModal(timeSlot, day, true);
+                                };
+                            }
+                            
+                            if (deleteBtn) {
+                                deleteBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    openDeleteConfirmationModal(timeSlot, day);
+                                };
+                            }
+                        }
+                        
+                        cell.onclick = (e) => e.stopPropagation();
+
+
+                    } else {
+                        if (isAdminLoggedIn) {
+                            cell.onclick = () => openSessionModal(timeSlot, day, false);
+                            cell.title = "Click to add session";
+                        }
+                    }
+                    row.appendChild(cell);
+                });
+                tbody.appendChild(row);
+            });
+        }
+
+        // --- Admin Actions (Session Modal) ---
+        const modalBackdrop = document.getElementById('sessionModal');
+        const inpSubject = document.getElementById('inpSubject');
+        const inpTeacher = document.getElementById('inpTeacher');
+        const inpLocation = document.getElementById('inpLocation');
+        const inpSessionType = document.getElementById('inpSessionType');
+
+        function openSessionModal(timeSlot, day, isEdit) {
+            if (!isAdminLoggedIn) return; 
+
+            document.getElementById('modalDay').value = day;
+            document.getElementById('modalTimeSlot').value = timeSlot;
+            document.getElementById('modalMode').value = isEdit ? 'edit' : 'add';
+            document.getElementById('modalBlockDisplay').value = `${day} @ ${timeSlot} (${currentGroup})`;
+
+            if (isEdit) {
+                const session = schedule[timeSlot][day];
+                if(!session) return;
+                inpSubject.value = session.subject;
+                inpTeacher.value = session.teacher;
+                inpLocation.value = session.location;
+                inpSessionType.value = session.type;
+                document.getElementById('modalTitle').innerText = "Edit Session";
+            } else {
+                // Don't allow full-time at half-time slots (11:00 and 16:00)
+                if (timeSlot === '11:00-13:30' || timeSlot === '16:00-18:30') {
+                    inpSessionType.value = 'half';
+                    inpSessionType.disabled = true;
+                } else {
+                    inpSessionType.disabled = false;
+                }
+                document.getElementById('modalTitle').innerText = "New Session";
+                inpSubject.value = '';
+                inpTeacher.value = '';
+            }
+            
+            modalBackdrop.classList.add('active');
+            setTimeout(() => inpSubject.focus(), 100);
+        }
+
+        function closeSessionModal() {
+            modalBackdrop.classList.remove('active');
+            inpSessionType.disabled = false;
+            document.getElementById('conflictWarning').classList.remove('active');
+            // Clear autocomplete dropdowns
+            document.getElementById('teacherAutocomplete').classList.remove('active');
+            document.getElementById('subjectAutocomplete').classList.remove('active');
+        }
+
+        // --- Delete Confirmation Modal ---
+        function openDeleteConfirmationModal(timeSlot, day) {
+            if (!isAdminLoggedIn) return;
+            
+            const session = schedule[timeSlot][day];
+            if (!session) return;
+            
+            // Store the timeSlot and day for deletion
+            document.getElementById('deleteModalDay').value = day;
+            document.getElementById('deleteModalTimeSlot').value = timeSlot;
+            
+            // Calculate the full time range for display
+            let timeRange = timeSlot;
+            if (session.type === 'full') {
+                const index = timeSlots.indexOf(timeSlot);
+                if (index !== -1 && index < timeSlots.length - 1) {
+                    const nextSlot = timeSlots[index + 1];
+                    timeRange = `${timeSlot} & ${nextSlot}`;
+                }
+            }
+            
+            // Populate the session details
+            const detailsDiv = document.getElementById('deleteSessionDetails');
+            const duration = session.type === 'full' ? '5 Hours (Full-Time)' : '2.5 Hours (Half-Time)';
+            const location = session.location === 'teams' ? 'Microsoft Teams' : 'Physical Classroom';
+            
+            detailsDiv.innerHTML = `
+                <div><strong>Subject:</strong> ${session.subject}</div>
+                <div><strong>Teacher:</strong> ${session.teacher}</div>
+                <div><strong>Duration:</strong> ${duration}</div>
+                <div><strong>Location:</strong> ${location}</div>
+                <div><strong>Day:</strong> ${day}</div>
+                <div><strong>Time:</strong> ${timeRange}</div>
+                <div><strong>Group:</strong> ${currentGroup}</div>
+            `;
+            
+            document.getElementById('deleteConfirmationModal').classList.add('active');
+        }
+
+        function closeDeleteConfirmationModal() {
+            document.getElementById('deleteConfirmationModal').classList.remove('active');
+        }
+
+        async function confirmDeleteSession() {
+            const day = document.getElementById('deleteModalDay').value;
+            const timeSlot = document.getElementById('deleteModalTimeSlot').value;
+            
+            console.log('Confirm delete for:', timeSlot, day);
+            const session = schedule[timeSlot][day];
+            schedule[timeSlot][day] = null;
+            
+            // If it's a full-time session, also clear the next time slot
+            if (session && session.type === 'full') {
+                const index = timeSlots.indexOf(timeSlot);
+                const nextSlot = timeSlots[index + 1];
+                if (nextSlot) {
+                    schedule[nextSlot][day] = null;
+                }
+            }
+            
+            // Save to Firebase
+            await saveScheduleToFirebase();
+            renderSchedule();
+            closeDeleteConfirmationModal();
+            showToast('Session deleted', 'success');
+        }
+
+        // --- Autocomplete System ---
+        let selectedAutocompleteIndex = -1;
+        let currentAutocompleteItems = [];
+
+        function setupAutocomplete(inputElement, autocompleteElement, dataSet) {
+            inputElement.addEventListener('input', function() {
+                const value = this.value.toLowerCase().trim();
+                autocompleteElement.innerHTML = '';
+                selectedAutocompleteIndex = -1;
+                currentAutocompleteItems = [];
+
+                if (value.length === 0) {
+                    autocompleteElement.classList.remove('active');
+                    return;
+                }
+
+                // Filter matching items
+                const matches = [...dataSet].filter(item => 
+                    item.toLowerCase().includes(value)
+                ).sort();
+
+                if (matches.length > 0 || value.length > 0) {
+                    currentAutocompleteItems = matches;
+                    
+                    matches.forEach((item, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-item';
+                        div.textContent = item;
+                        div.addEventListener('click', () => {
+                            inputElement.value = item;
+                            autocompleteElement.classList.remove('active');
+                            checkForConflicts(); // Check conflicts after selection
+                        });
+                        autocompleteElement.appendChild(div);
+                    });
+
+                    // Add "Add new" option if exact match doesn't exist
+                    if (!dataSet.has(inputElement.value.trim()) && inputElement.value.trim().length > 0) {
+                        const addNewDiv = document.createElement('div');
+                        addNewDiv.className = 'autocomplete-item add-new-option';
+                        addNewDiv.textContent = `+ Add "${inputElement.value.trim()}"`;
+                        addNewDiv.addEventListener('click', () => {
+                            autocompleteElement.classList.remove('active');
+                            checkForConflicts();
+                        });
+                        autocompleteElement.appendChild(addNewDiv);
+                    }
+
+                    autocompleteElement.classList.add('active');
+                } else {
+                    autocompleteElement.classList.remove('active');
+                }
+
+                // Check for conflicts as user types (for teacher field)
+                if (inputElement.id === 'inpTeacher') {
+                    checkForConflicts();
+                }
             });
 
-            // Fill in the schedule data
-            for (const [cellId, subject] of Object.entries(groupData.schedule)) {
-                const cell = document.getElementById(cellId);
-                if (cell) {
-                    cell.textContent = subject;
+            // Keyboard navigation
+            inputElement.addEventListener('keydown', function(e) {
+                const items = autocompleteElement.querySelectorAll('.autocomplete-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedAutocompleteIndex = Math.min(selectedAutocompleteIndex + 1, items.length - 1);
+                    updateAutocompleteSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedAutocompleteIndex = Math.max(selectedAutocompleteIndex - 1, -1);
+                    updateAutocompleteSelection(items);
+                } else if (e.key === 'Enter' && selectedAutocompleteIndex >= 0) {
+                    e.preventDefault();
+                    items[selectedAutocompleteIndex].click();
+                } else if (e.key === 'Escape') {
+                    autocompleteElement.classList.remove('active');
+                }
+            });
+
+            // Close on click outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== inputElement && !autocompleteElement.contains(e.target)) {
+                    autocompleteElement.classList.remove('active');
+                }
+            });
+        }
+
+        function updateAutocompleteSelection(items) {
+            items.forEach((item, index) => {
+                if (index === selectedAutocompleteIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        // --- Cross-Group Conflict Detection ---
+        function checkForConflicts() {
+            const teacher = inpTeacher.value.trim();
+            const currentTimeSlot = document.getElementById('modalTimeSlot').value;
+            const currentDay = document.getElementById('modalDay').value;
+            const warningDiv = document.getElementById('conflictWarning');
+            const warningText = document.getElementById('conflictWarningText');
+
+            if (!teacher || teacher === 'TBA' || teacher.length < 2) {
+                warningDiv.classList.remove('active');
+                return;
+            }
+
+            const conflicts = [];
+
+            // Check all groups except current one
+            availableGroups.forEach(group => {
+                if (group === currentGroup) return; // Skip current group
+
+                // Check localStorage cache for other groups
+                const savedSchedule = localStorage.getItem(`schedule_${group}`);
+                
+                if (savedSchedule) {
+                    try {
+                        const groupSchedule = JSON.parse(savedSchedule);
+                        
+                        // First, check for direct conflict in the current time slot
+                        const session = groupSchedule[currentTimeSlot]?.[currentDay];
+                        
+                        if (session && session.teacher && 
+                            session.teacher.toLowerCase() === teacher.toLowerCase()) {
+                            let timeRange = currentTimeSlot;
+                            // If it's a full-time session, show the full time range
+                            if (session.type === 'full') {
+                                const index = timeSlots.indexOf(currentTimeSlot);
+                                if (index !== -1 && index < timeSlots.length - 1) {
+                                    timeRange = `${currentTimeSlot} & ${timeSlots[index + 1]}`;
+                                }
+                            }
+                            conflicts.push({
+                                group: group,
+                                subject: session.subject,
+                                location: session.location,
+                                timeRange: timeRange
+                            });
+                        }
+                        
+                        // Check if the teacher has a full-time session that overlaps with the current time slot
+                        // This is important because full-time sessions occupy two slots
+                        timeSlots.forEach(slot => {
+                            const checkSession = groupSchedule[slot]?.[currentDay];
+                            if (checkSession && checkSession.teacher && 
+                                checkSession.teacher.toLowerCase() === teacher.toLowerCase() &&
+                                checkSession.type === 'full') {
+                                const slotIndex = timeSlots.indexOf(slot);
+                                // Check if the current time slot falls within this full-time session
+                                if (slotIndex !== -1) {
+                                    const nextSlot = timeSlots[slotIndex + 1];
+                                    // If currentTimeSlot is either the starting slot or the next slot of this full-time session
+                                    if (currentTimeSlot === slot || currentTimeSlot === nextSlot) {
+                                        // Check if we haven't already added this conflict
+                                        const alreadyExists = conflicts.some(c => 
+                                            c.group === group && 
+                                            c.subject === checkSession.subject &&
+                                            c.location === checkSession.location
+                                        );
+                                        if (!alreadyExists) {
+                                            conflicts.push({
+                                                group: group,
+                                                subject: checkSession.subject,
+                                                location: checkSession.location,
+                                                timeRange: `${slot} & ${nextSlot}`
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                    } catch (e) {}
+                }
+            });
+
+            if (conflicts.length > 0) {
+                warningDiv.classList.add('active');
+                
+                // Create detailed conflict information
+                let conflictHTML = `<strong>WHO:</strong> ${teacher}<br>`;
+                conflictHTML += `<strong>DAY:</strong> ${currentDay}<br><br>`;
+                conflictHTML += `<strong>Already scheduled in:</strong><br>`;
+                
+                conflicts.forEach((c, index) => {
+                    conflictHTML += `${index + 1}. <strong>Group ${c.group}</strong> - ${c.subject} <span style="color: #6b7280;">(${c.location === 'teams' ? 'Teams' : 'Classroom'} at ${c.timeRange})</span><br>`;
+                });
+                
+                warningText.innerHTML = conflictHTML;
+            } else {
+                warningDiv.classList.remove('active');
+            }
+        }
+
+        async function saveSession() {
+            const day = document.getElementById('modalDay').value;
+            const timeSlot = document.getElementById('modalTimeSlot').value;
+            const subject = inpSubject.value.trim();
+            const teacher = inpTeacher.value.trim();
+            const location = inpLocation.value;
+            const type = inpSessionType.value;
+            const index = timeSlots.indexOf(timeSlot);
+
+            if (!subject) {
+                showToast('Subject is required', 'error');
+                return;
+            }
+
+            // Check for teacher conflicts across groups
+            if (teacher && teacher !== 'TBA') {
+                const conflicts = [];
+                availableGroups.forEach(group => {
+                    if (group === currentGroup) return; // Skip current group
+
+                    // Check localStorage cache for other groups
+                    const savedSchedule = localStorage.getItem(`schedule_${group}`);
+                    
+                    if (savedSchedule) {
+                        try {
+                            const groupSchedule = JSON.parse(savedSchedule);
+                            
+                            // Check direct conflict in the current time slot
+                            const session = groupSchedule[timeSlot]?.[day];
+                            
+                            if (session && session.teacher && 
+                                session.teacher.toLowerCase() === teacher.toLowerCase()) {
+                                let timeRange = timeSlot;
+                                if (session.type === 'full') {
+                                    const sessionIndex = timeSlots.indexOf(timeSlot);
+                                    if (sessionIndex !== -1 && sessionIndex < timeSlots.length - 1) {
+                                        timeRange = `${timeSlot} & ${timeSlots[sessionIndex + 1]}`;
+                                    }
+                                }
+                                conflicts.push({
+                                    group: group,
+                                    subject: session.subject,
+                                    location: session.location === 'teams' ? 'Teams (Online)' : 'Classroom',
+                                    day: day,
+                                    time: timeRange
+                                });
+                            }
+                            
+                            // Check if the teacher has a full-time session that overlaps
+                            timeSlots.forEach(slot => {
+                                const checkSession = groupSchedule[slot]?.[day];
+                                if (checkSession && checkSession.teacher && 
+                                    checkSession.teacher.toLowerCase() === teacher.toLowerCase() &&
+                                    checkSession.type === 'full') {
+                                    const slotIndex = timeSlots.indexOf(slot);
+                                    // Check if our time slot falls within this full-time session
+                                    if (slotIndex !== -1) {
+                                        const nextSlot = timeSlots[slotIndex + 1];
+                                        // If our time slot is either the starting slot or the next slot of this full-time session
+                                        if (timeSlot === slot || timeSlot === nextSlot) {
+                                            // Check if we haven't already added this conflict
+                                            const alreadyExists = conflicts.some(c => 
+                                                c.group === group && 
+                                                c.subject === checkSession.subject &&
+                                                c.location === (checkSession.location === 'teams' ? 'Teams (Online)' : 'Classroom')
+                                            );
+                                            if (!alreadyExists) {
+                                                conflicts.push({
+                                                    group: group,
+                                                    subject: checkSession.subject,
+                                                    location: checkSession.location === 'teams' ? 'Teams (Online)' : 'Classroom',
+                                                    day: day,
+                                                    time: `${slot} & ${nextSlot}`
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                        } catch (e) {}
+                    }
+                });
+
+                if (conflicts.length > 0) {
+                    // Create detailed conflict message with WHO, WHERE, and WHEN
+                    let conflictMessage = `⚠️ TEACHER CONFLICT DETECTED!\n\n`;
+                    conflictMessage += `WHO: ${teacher}\n`;
+                    conflictMessage += `WHEN: ${day} at ${timeSlot}\n\n`;
+                    conflictMessage += `This teacher is already scheduled in:\n\n`;
+                    
+                    conflicts.forEach((c, index) => {
+                        conflictMessage += `${index + 1}. GROUP ${c.group}\n`;
+                        conflictMessage += `   Subject: ${c.subject}\n`;
+                        conflictMessage += `   Location: ${c.location}\n`;
+                        conflictMessage += `   Time: ${c.time}\n\n`;
+                    });
+                    
+                    conflictMessage += `Do you want to save anyway and create a double-booking?`;
+                    
+                    if (!confirm(conflictMessage)) {
+                        return; // User cancelled, don't save
+                    }
                 }
             }
 
-            // Refresh feather icons
-            feather.replace();
+            if (type === 'full') {
+                if (timeSlot !== '08:30-11:00' && timeSlot !== '13:30-16:00') {
+                    showToast("Full-Time sessions must start at 08:30 or 13:30", 'error');
+                    return;
+                }
+                const nextSlot = timeSlots[index + 1];
+                if (schedule[nextSlot][day]) {
+                    showToast("Next slot is occupied. Cannot create Full-Time session.", 'error');
+                    return;
+                }
+                // Don't create a blocked slot - the rowspan will handle the visual spanning
+            }
+
+            schedule[timeSlot][day] = { subject, teacher: teacher || 'TBA', location, type };
+            
+            // Add to database for future autocomplete
+            await addToDatabase(teacher, subject);
+            
+            // Save to Firebase
+            await saveScheduleToFirebase();
+            renderSchedule();
+            closeSessionModal();
+            showToast('Saved to cloud!', 'success');
         }
+
+        function clearAllSchedule() {
+            openDeleteConfirmationModalForAll();
+        }
+
+        function openDeleteConfirmationModalForAll() {
+            // Create a custom confirmation for clearing all
+            const modalBackdrop = document.createElement('div');
+            modalBackdrop.className = 'modal-backdrop active';
+            modalBackdrop.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1000; display: flex; justify-content: center; align-items: center;';
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.cssText = 'background: white; border-radius: 16px; width: 100%; max-width: 450px; padding: 30px;';
+            
+            modal.innerHTML = `
+                <div class="delete-confirmation-icon">
+                    <span>⚠️</span>
+                </div>
+                <div class="delete-confirmation-text">
+                    <h2 style="color:var(--danger); margin-bottom:10px;">Clear All Sessions?</h2>
+                    <p style="color:var(--text-muted);">This will delete ALL sessions for group <strong>${currentGroup}</strong>.</p>
+                </div>
+                
+                <div class="delete-confirmation-details">
+                    <div class="delete-confirmation-details-title">Warning:</div>
+                    <div class="delete-confirmation-details-content">
+                        This action will permanently delete all schedule data for this group and cannot be undone.
+                    </div>
+                </div>
+                
+                <div class="delete-confirmation-buttons">
+                    <button class="btn btn-secondary" id="cancelClearAll">Cancel</button>
+                    <button class="btn btn-danger" id="confirmClearAll">Clear All Sessions</button>
+                </div>
+            `;
+            
+            modalBackdrop.appendChild(modal);
+            document.body.appendChild(modalBackdrop);
+            
+            document.getElementById('cancelClearAll').onclick = async function() {
+                document.body.removeChild(modalBackdrop);
+            };
+            
+            document.getElementById('confirmClearAll').onclick = async function() {
+                initSchedule();
+                // Save empty schedule to Firebase
+                await saveScheduleToFirebase();
+                renderSchedule();
+                document.body.removeChild(modalBackdrop);
+                showToast('All sessions cleared', 'success');
+            };
+            
+            // Close on outside click
+            modalBackdrop.onclick = function(e) {
+                if (e.target === modalBackdrop) {
+                    document.body.removeChild(modalBackdrop);
+                }
+            };
+        }
+
+        // --- Database Manager Functions ---
+        async function openDatabaseManager() {
+            if (!isAdminLoggedIn) return;
+            
+            await renderDatabaseLists();
+            document.getElementById('databaseModal').classList.add('active');
+            setTimeout(() => document.getElementById('newTeacherInput').focus(), 100);
+        }
+
+        function closeDatabaseManager() {
+            document.getElementById('databaseModal').classList.remove('active');
+            document.getElementById('newTeacherInput').value = '';
+            document.getElementById('newSubjectInput').value = '';
+        }
+
+        async function renderDatabaseLists() {
+            // Refresh database from Firebase before rendering
+            await loadDatabase();
+            
+            // Render Teachers
+            const teachersList = document.getElementById('teachersList');
+            teachersList.innerHTML = '';
+            const sortedTeachers = [...teachersDB].sort();
+            
+            if (sortedTeachers.length === 0) {
+                teachersList.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">No teachers yet</div>';
+            } else {
+                sortedTeachers.forEach(teacher => {
+                    const item = document.createElement('div');
+                    item.className = 'db-list-item';
+                    item.innerHTML = `
+                        <span class="db-list-item-name">${teacher}</span>
+                        <span class="db-list-item-delete" onclick="removeTeacher('${teacher.replace(/'/g, "\\'")}')">🗑️ Remove</span>
+                    `;
+                    teachersList.appendChild(item);
+                });
+            }
+
+            // Render Subjects
+            const subjectsList = document.getElementById('subjectsList');
+            subjectsList.innerHTML = '';
+            const sortedSubjects = [...subjectsDB].sort();
+            
+            if (sortedSubjects.length === 0) {
+                subjectsList.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">No subjects yet</div>';
+            } else {
+                sortedSubjects.forEach(subject => {
+                    const item = document.createElement('div');
+                    item.className = 'db-list-item';
+                    item.innerHTML = `
+                        <span class="db-list-item-name">${subject}</span>
+                        <span class="db-list-item-delete" onclick="removeSubject('${subject.replace(/'/g, "\\'")}')">🗑️ Remove</span>
+                    `;
+                    subjectsList.appendChild(item);
+                });
+            }
+        }
+
+        async function addNewTeacher() {
+            const input = document.getElementById('newTeacherInput');
+            const teacher = input.value.trim();
+            
+            if (!teacher) {
+                showToast('Please enter a teacher name', 'error');
+                return;
+            }
+            
+            if (teachersDB.has(teacher)) {
+                showToast('This teacher already exists', 'error');
+                return;
+            }
+            
+            teachersDB.add(teacher);
+            
+            // Save to Firebase
+            if (db) {
+                try {
+                    await db.collection('teachers').add({ name: teacher });
+                    showToast('Teacher added successfully', 'success');
+                } catch (error) {
+                    console.error("Error saving teacher to Firebase:", error);
+                    teachersDB.delete(teacher); // Rollback
+                    showToast("Failed to add teacher to Firebase", "error");
+                    return;
+                }
+            } else {
+                showToast("Database not available", "error");
+                return;
+            }
+            
+            // NO localStorage backup - using Firebase only
+            
+            renderDatabaseLists();
+            input.value = '';
+        }
+
+        async function addNewSubject() {
+            const input = document.getElementById('newSubjectInput');
+            const subject = input.value.trim();
+            
+            if (!subject) {
+                showToast('Please enter a subject name', 'error');
+                return;
+            }
+            
+            if (subjectsDB.has(subject)) {
+                showToast('This subject already exists', 'error');
+                return;
+            }
+            
+            subjectsDB.add(subject);
+            
+            // Save to Firebase
+            if (db) {
+                try {
+                    await db.collection('subjects').add({ name: subject });
+                    showToast('Subject added successfully', 'success');
+                } catch (error) {
+                    console.error("Error saving subject to Firebase:", error);
+                    subjectsDB.delete(subject); // Rollback
+                    showToast("Failed to add subject to Firebase", "error");
+                    return;
+                }
+            } else {
+                showToast("Database not available", "error");
+                return;
+            }
+            
+            // NO localStorage backup - using Firebase only
+            
+            renderDatabaseLists();
+            input.value = '';
+        }
+
+        async function removeTeacher(teacher) {
+            if (confirm(`Remove "${teacher}" from the database?\n\nNote: This will NOT delete existing sessions with this teacher.`)) {
+                teachersDB.delete(teacher);
+                
+                // Remove from Firebase
+                if (db) {
+                    try {
+                        const querySnapshot = await db.collection('teachers')
+                            .where('name', '==', teacher)
+                            .get();
+                        
+                        const deletePromises = [];
+                        querySnapshot.forEach(async (doc) => {
+                            deletePromises.push(doc.ref.delete());
+                        });
+                        
+                        await Promise.all(deletePromises);
+                        showToast('Teacher removed', 'success');
+                    } catch (error) {
+                        console.error("Error removing teacher from Firebase:", error);
+                        teachersDB.add(teacher); // Rollback
+                        showToast("Failed to remove teacher from Firebase", "error");
+                        return;
+                    }
+                } else {
+                    showToast("Database not available", "error");
+                    return;
+                }
+                
+                // NO localStorage update - using Firebase only
+                renderDatabaseLists();
+            }
+        }
+
+        async function removeSubject(subject) {
+            if (confirm(`Remove "${subject}" from the database?\n\nNote: This will NOT delete existing sessions with this subject.`)) {
+                subjectsDB.delete(subject);
+                
+                // Remove from Firebase
+                if (db) {
+                    try {
+                        const querySnapshot = await db.collection('subjects')
+                            .where('name', '==', subject)
+                            .get();
+                        
+                        const deletePromises = [];
+                        querySnapshot.forEach(async (doc) => {
+                            deletePromises.push(doc.ref.delete());
+                        });
+                        
+                        await Promise.all(deletePromises);
+                        showToast('Subject removed', 'success');
+                    } catch (error) {
+                        console.error("Error removing subject from Firebase:", error);
+                        subjectsDB.add(subject); // Rollback
+                        showToast("Failed to remove subject from Firebase", "error");
+                        return;
+                    }
+                } else {
+                    showToast("Database not available", "error");
+                    return;
+                }
+                
+                // NO localStorage update - using Firebase only
+                renderDatabaseLists();
+            }
+        }
+
+        // --- Utilities ---
+        function showToast(msg, type='success') {
+            const container = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast`;
+            t.style.borderLeftColor = type === 'success' ? 'var(--success)' : (type === 'error' ? 'var(--danger)' : 'var(--primary)');
+            t.innerHTML = `<span>${msg}</span>`;
+            container.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        function exportSchedule() {
+            const blob = new Blob([JSON.stringify(schedule, null, 2)], {type:'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; 
+            // Updated to include group name in file
+            a.download = `schedule_${currentGroup}.json`; 
+            a.click();
+        }
+
+        async function importSchedule(e) {
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    schedule = JSON.parse(ev.target.result);
+                    // Save to Firebase
+                    await saveScheduleToFirebase();
+                    renderSchedule();
+                    showToast(`Imported to ${currentGroup}`);
+                } catch(err) { showToast('Invalid JSON', 'error'); }
+            };
+            if(e.target.files[0]) reader.readAsText(e.target.files[0]);
+        }
+
+        // --- Event Listeners for Login Keypress ---
+        document.getElementById('loginPass').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') attemptLogin();
+        });
+
+        // --- Event Listeners for Database Manager ---
+        document.getElementById('newTeacherInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') addNewTeacher();
+        });
+        document.getElementById('newSubjectInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') addNewSubject();
+        });
+
+        // Initialize the application
+        async function initApp() {
+            // Initialize Firebase first
+            if (typeof firebase !== 'undefined') {
+                initializeFirebase();
+            } else {
+                console.error("Firebase SDK not loaded. Please check your internet connection.");
+                showToast("Firebase SDK not loaded. Please refresh the page.", "error");
+            }
+            
+            // Then initialize the rest of the app
+            await loadDatabase();
+            initGroupSelector();
+            await loadSchedule();
+            renderSchedule();
+
+            // Setup autocomplete for teacher and subject inputs
+            setupAutocomplete(
+                document.getElementById('inpTeacher'),
+                document.getElementById('teacherAutocomplete'),
+                teachersDB
+            );
+            setupAutocomplete(
+                document.getElementById('inpSubject'),
+                document.getElementById('subjectAutocomplete'),
+                subjectsDB
+            );
+        }
+
+        // Start the app when the page is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initApp();
+        });
+
+        // Close modals on outside click
+        window.addEventListener('click', e => {
+            if(e.target === modalBackdrop) closeSessionModal();
+            if(e.target === document.getElementById('loginModal')) closeLoginModal();
+            if(e.target === document.getElementById('databaseModal')) closeDatabaseManager();
+            if(e.target === document.getElementById('deleteConfirmationModal')) closeDeleteConfirmationModal();
+        });
+
     </script>
 </body>
 </html>
-```
-    <footer class="border-t border-gray-200 py-6 px-6 text-center text-sm text-gray-600">
-        <p>OFPPT - Direction Régionale © 2024. Tous droits réservés.</p>
-        <div class="mt-2 flex justify-center space-x-4">
-            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="facebook"></i></a>
-            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="twitter"></i></a>
-            <a href="#" class="text-indigo-600 hover:text-indigo-800"><i data-feather="instagram"></i></a>
-        </div>
-    </footer>
-
-    <script>
-        feather.replace();
-        document.querySelectorAll('.select-group').forEach(group => {
-            group.addEventListener('click', function() {
-                // Logic to load schedule for selected group
-                const groupName = this.querySelector('span').textContent;
-                alert(`Chargement de l'emploi du temps pour ${groupName}`);
-            });
-        });
-    </script>
-</body>
-                                                                                              </html>
